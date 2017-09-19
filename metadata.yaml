@@ -1,0 +1,8 @@
+name: go
+summary: layer go
+maintainer: Sander Borny <sander.borny@intec.ugent.be>
+description: |
+  layer go
+tags:
+  - misc
+series: ['xenial']

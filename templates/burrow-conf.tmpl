@@ -1,0 +1,37 @@
+[general]
+logdir={{logdir}}
+logconfig={{logconfig}}
+pidfile=burrow.pid
+client-id=burrow-lagchecker
+group-blacklist=^(console-consumer-|python-kafka-consumer-).*$
+
+[zookeeper]
+{%- for unit in zoo_units -%}
+hostname={{unit}}
+{%- endfor -%}
+port={{zoo_port}}
+timeout=6
+lock-path=/burrow/notifier
+
+[kafka "{{cluster}}"]
+{%- for unit in kafka_units -%}
+brokers={{unit}}
+{%- endfor -%}
+broker-port={{kafka_port}}
+{%- for unit in zoo_units -%}
+zookeeper={{unit}}
+{%- endfor -%}
+zookeeper-port={{zoo_port}}
+zookeeper-path=/kafka-cluster
+offsets-topic=__consumer_offsets
+
+[tickers]
+broker-offsets=60
+
+[lagcheck]
+intervals=10
+expire-group=604800
+
+[httpserver]
+server=on
+port={{api_port}}
