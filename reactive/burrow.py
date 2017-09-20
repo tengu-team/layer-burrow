@@ -110,3 +110,8 @@ def start(kafka):
         host.service_start('burrow')
     status_set('active', 'ready (:8000)')
     set_state('burrow.started')
+
+
+@when('http.available')
+def configure_http(http):
+    http.configure(port=8000)

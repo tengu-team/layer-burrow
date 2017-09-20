@@ -8,4 +8,7 @@ tags:
 requires:
   kafka:
     interface: kafka
+provides:
+  http:
+    interface: http
 series: ['xenial']

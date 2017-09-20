@@ -1,1 +1,1 @@
-includes: ['layer:go', 'interface:kafka']
+includes: ['layer:go', 'interface:kafka', 'interface:http']
