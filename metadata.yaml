@@ -1,8 +1,11 @@
-name: go
-summary: layer go
-maintainer: Sander Borny <sander.borny@intec.ugent.be>
+name: burrow
+summary: layer burrow
+maintainer: Sander Borny <sander.borny@ugent.be>
 description: |
-  layer go
+  layer burrow
 tags:
   - misc
+requires:
+  kafka:
+    interface: kafka
 series: ['xenial']
