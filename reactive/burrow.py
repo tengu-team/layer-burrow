@@ -16,6 +16,7 @@
 import os
 from subprocess import call
 from jujubigdata import utils
+from subprocess import call
 from charmhelpers.core import hookenv, templating, host
 from charmhelpers.core.hookenv import status_set, log, open_port
 from charms.reactive import when, when_not, set_state, remove_state
@@ -47,11 +48,12 @@ def status_kafka():
     status_set('blocked', 'Waiting for Kafka relation')
 
 
-@when('kafka.joined', 'go.installed')
+@when('burrow.started')
 @when_not('kafka.ready')
-def wait_for_kafka(kafka):
+def wait_for_kafka():
     status_set('waiting', 'Waiting for Kafka to become ready')
     if host.service_running('burrow'):
+        call('systemctl', 'disable', 'burrow')
         host.service_stop('burrow')
     remove_state('burrow.started')
 
@@ -66,8 +68,7 @@ def configure(kafka):
     context = {
         'logdir': '/home/ubuntu/burrow/log',
         'logconfig': '/home/ubuntu/burrow/config/logging.cfg',
-        'api_port': 8000,
-        'cluster': 'local'
+        'api_port': 8000
     }
 
     zookeeper_nodes = []
@@ -86,6 +87,12 @@ def configure(kafka):
     context['zoo_port'] = zookeeper_port
     context['kafka_units'] = kafka_nodes
     context['kafka_port'] = kafka_port
+
+    kafka_cluster_name = 'local'
+    for conv in kafka.conversations():
+        kafka_cluster_name = conv.key.split('.')[-1].split('/')[0]
+        break
+    context['cluster'] = kafka_cluster_name
 
     templating.render(source='burrow-conf.tmpl',
                       target='/home/ubuntu/burrow/config/burrow.cfg',
@@ -107,6 +114,7 @@ def configure(kafka):
 def start(kafka):
     hookenv.log('Starting burrow')
     if not host.service_running('burrow'):
+        call('systemctl', 'enable', 'burrow')
         host.service_start('burrow')
     status_set('active', 'ready (:8000)')
     set_state('burrow.started')
