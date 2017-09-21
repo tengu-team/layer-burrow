@@ -18,9 +18,12 @@ from subprocess import call
 from jujubigdata import utils
 from subprocess import call
 from charmhelpers.core import hookenv, templating, host
-from charmhelpers.core.hookenv import status_set, log, open_port
+from charmhelpers.core.hookenv import status_set, log, open_port, close_port
 from charms.reactive import when, when_not, set_state, remove_state
 from charms.layer.go import go_environment
+
+
+config = hookenv.config()
 
 
 @when('go.installed')
@@ -48,12 +51,24 @@ def status_kafka():
     status_set('blocked', 'Waiting for Kafka relation')
 
 
+@when('config.changed.port')
+def config_changed_port():
+    stop_burrow()
+    if config.previous('port'):
+        close_port('port')
+    remove_state('burrow.configured')
+
+
 @when('burrow.started')
 @when_not('kafka.ready')
 def wait_for_kafka():
     status_set('waiting', 'Waiting for Kafka to become ready')
+    stop_burrow()
+
+
+def stop_burrow():
     if host.service_running('burrow'):
-        call('systemctl', 'disable', 'burrow')
+        call(['systemctl', 'disable', 'burrow'])
         host.service_stop('burrow')
     remove_state('burrow.started')
 
@@ -61,14 +76,18 @@ def wait_for_kafka():
 @when('go.installed', 'kafka.ready')
 @when_not('burrow.configured')
 def configure(kafka):
+    if not config.get('port'):
+        status_set('blocked', 'Waiting for port config')
+        return
     hookenv.log('Configuring Burrow')
+    status_set('maintenance', 'Configuring Burrow')
     templating.render(source='logging-conf.tmpl',
                       target='/home/ubuntu/burrow/config/logging.cfg',
                       context={})
     context = {
         'logdir': '/home/ubuntu/burrow/log',
         'logconfig': '/home/ubuntu/burrow/config/logging.cfg',
-        'api_port': 8000
+        'api_port': config.get('port')
     }
 
     zookeeper_nodes = []
@@ -105,7 +124,7 @@ def configure(kafka):
                           'burrow_path': go_env['GOPATH'] + '/bin/Burrow',
                           'config_path': '/home/ubuntu/burrow/config/burrow.cfg'
                       })
-    open_port(8000)
+    open_port(config.get('port'))
     set_state('burrow.configured')
 
 
@@ -114,12 +133,12 @@ def configure(kafka):
 def start(kafka):
     hookenv.log('Starting burrow')
     if not host.service_running('burrow'):
-        call('systemctl', 'enable', 'burrow')
+        call(['systemctl', 'enable', 'burrow'])
         host.service_start('burrow')
-    status_set('active', 'ready (:8000)')
+    status_set('active', 'ready (:' + str(config.get('port')) + ')')
     set_state('burrow.started')
 
 
 @when('http.available')
 def configure_http(http):
-    http.configure(port=8000)
+    http.configure(port=config.get('port'))
