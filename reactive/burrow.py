@@ -19,7 +19,7 @@ from jujubigdata import utils
 from subprocess import call
 from charmhelpers.core import hookenv, templating, host
 from charmhelpers.core.hookenv import status_set, log, open_port, close_port
-from charms.reactive import when, when_not, set_state, remove_state
+from charms.reactive import when, when_not, set_state, remove_state, when_any
 from charms.layer.go import go_environment
 
 
@@ -59,6 +59,15 @@ def config_changed_port():
     remove_state('burrow.configured')
 
 
+@when_any('config.changed.slack-notifier',
+          'config.changed.slack-webhook',
+          'config.changed.consumer-groups')
+def config_changed_slack():
+    # Extra conditions
+    stop_burrow()
+    remove_state('burrow.configured')
+
+
 @when('burrow.started')
 @when_not('kafka.ready')
 def wait_for_kafka():
@@ -87,7 +96,8 @@ def configure(kafka):
     context = {
         'logdir': '/home/ubuntu/burrow/log',
         'logconfig': '/home/ubuntu/burrow/config/logging.cfg',
-        'api_port': config.get('port')
+        'api_port': config.get('port'),
+        'slack': config.get('slack-notifier')
     }
 
     zookeeper_nodes = []
@@ -113,17 +123,29 @@ def configure(kafka):
         break
     context['cluster'] = kafka_cluster_name
 
+    if (config.get('slack-notifier') and
+            config.get('slack-webhook').rstrip() and
+            config.get('consumer-groups').rstrip() and
+            config.get('slack-channel').rstrip()):
+        context['slack_webhook'] = config.get('slack-webhook').rstrip()
+        context['groups'] = config.get('consumer-groups').rstrip().split(' ')
+        context['channel'] = config.get('slack-channel').rstrip()
+
     templating.render(source='burrow-conf.tmpl',
                       target='/home/ubuntu/burrow/config/burrow.cfg',
                       context=context)
 
     go_env = go_environment()
+    systemd_context = {
+        'burrow_path': go_env['GOPATH'] + '/bin/Burrow',
+        'config_path': '/home/ubuntu/burrow/config/burrow.cfg',
+    }
+
+
     templating.render(source='unit_file.tmpl',
                       target='/etc/systemd/system/burrow.service',
-                      context={
-                          'burrow_path': go_env['GOPATH'] + '/bin/Burrow',
-                          'config_path': '/home/ubuntu/burrow/config/burrow.cfg'
-                      })
+                      context=systemd_context)
+
     open_port(config.get('port'))
     set_state('burrow.configured')
 

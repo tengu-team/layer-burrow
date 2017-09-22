@@ -4,3 +4,23 @@ options:
     default: 8000
     description: |
       "API port for Burrow"
+  slack-notifier:
+    type: boolean
+    default: false
+    description: |
+      "If true burrow will send slack messages for consumers which are in ERROR state."
+  slack-webhook:
+    type: string
+    default: ""
+    description: |
+      "Web hook needed for slack notification"
+  slack-channel:
+    type: string
+    default: ""
+    description: |
+      "Slack channel to send notifications"
+  consumer-groups:
+    type: string
+    default: ""
+    description: |
+      "Space separated list of consumer groups used by notifiers."

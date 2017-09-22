@@ -1,1 +1,2 @@
 includes: ['layer:go', 'interface:kafka', 'interface:http']
+repo: git@github.com:tengu-team/layer-burrow.git
