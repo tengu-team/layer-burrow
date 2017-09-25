@@ -19,6 +19,11 @@ options:
     default: ""
     description: |
       "Slack channel to send notifications"
+  notify-interval:
+    type: int
+    default: 60
+    description: |
+      "The interval (in seconds) to check for consumer group status. This will also determine the interval of slack notifications."
   consumer-groups:
     type: string
     default: ""

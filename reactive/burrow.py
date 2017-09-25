@@ -61,7 +61,8 @@ def config_changed_port():
 
 @when_any('config.changed.slack-notifier',
           'config.changed.slack-webhook',
-          'config.changed.consumer-groups')
+          'config.changed.consumer-groups',
+          'config.changed.notify-interval')
 def config_changed_slack():
     # Extra conditions
     stop_burrow()
@@ -126,10 +127,12 @@ def configure(kafka):
     if (config.get('slack-notifier') and
             config.get('slack-webhook').rstrip() and
             config.get('consumer-groups').rstrip() and
-            config.get('slack-channel').rstrip()):
+            config.get('slack-channel').rstrip() and
+            config.get('notify-interval').rstrip()):
         context['slack_webhook'] = config.get('slack-webhook').rstrip()
         context['groups'] = config.get('consumer-groups').rstrip().split(' ')
         context['channel'] = config.get('slack-channel').rstrip()
+        context['notify_interval'] = config.get('notify-interval').rstrip()
 
     templating.render(source='burrow-conf.tmpl',
                       target='/home/ubuntu/burrow/config/burrow.cfg',

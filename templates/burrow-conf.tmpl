@@ -36,6 +36,9 @@ expire-group=604800
 server=on
 port={{api_port}}
 
+[notify]
+interval={{notify_interval}}
+
 {% if slack %}
 [slacknotifier]
 enable=true
@@ -43,7 +46,7 @@ url={{slack_webhook}}
 {% for group in groups %}
 group={{cluster}},{{group}}
 {% endfor %}
-channel={{channel}}
+channel="{{channel}}"
 threshold=2
 username=burrowbot
 interval=3600
