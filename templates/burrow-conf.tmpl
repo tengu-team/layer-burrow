@@ -1,55 +1,38 @@
 [general]
-logdir={{logdir}}
-logconfig={{logconfig}}
-pidfile=burrow.pid
-client-id=burrow-lagchecker
-group-blacklist=^(console-consumer-|python-kafka-consumer-).*$
+pidfile="burrow.pid"
+stdout-logfile="burrow.out"
+
+[logging]
+filename="/home/ubuntu/burrow/log/burrow.log"
+level="info"
 
 [zookeeper]
+servers=[
 {% for unit in zoo_units %}
-hostname={{unit}}
+"{{unit}}:{{zoo_port}}",
 {% endfor %}
-port={{zoo_port}}
-timeout=6
-lock-path=/burrow/notifier
+]
 
-[kafka "{{cluster}}"]
+[client-profile.myclient]
+kafka-version="0.10.1.1"
+
+[httpserver.mylistener]
+address=":{{api_port}}"
+
+[cluster.{{cluster}}]
+class-name="kafka"
+servers=[
 {% for unit in kafka_units %}
-broker={{unit}}
+"{{unit}}:{{kafka_port}}",
 {% endfor %}
-broker-port={{kafka_port}}
-{% for unit in zoo_units %}
-zookeeper={{unit}}
+]
+
+[consumer.myconsumers]
+class-name="kafka"
+cluster="{{cluster}}"
+servers=[
+{% for unit in kafka_units %}
+"{{unit}}:{{kafka_port}}",
 {% endfor %}
-zookeeper-port={{zoo_port}}
-zookeeper-path=/kafka-cluster
-offsets-topic=__consumer_offsets
-
-[tickers]
-broker-offsets=60
-
-[lagcheck]
-intervals=10
-expire-group=604800
-
-[httpserver]
-server=on
-port={{api_port}}
-
-[notify]
-interval={{notify_interval}}
-
-{% if slack %}
-[slacknotifier]
-enable=true
-url={{slack_webhook}}
-{% for group in groups %}
-group={{cluster}},{{group}}
-{% endfor %}
-channel="{{channel}}"
-threshold=2
-username=burrowbot
-interval=3600
-timeout=5
-keepalive=30
-{% endif %}
+]
+group-whitelist="{{groups}}"
